@@ -130,7 +130,9 @@ Pengujian memakai seluruh **69 dataset** pada folder [Assets/Dataset/69](Assets/
 
 Gap dihitung dengan:
 
-$$\text{Gap}(\%)=\frac{Z_{\mathrm{metode}}-Z^*}{Z^*}\times100\%,$$
+```math
+\text{Gap}(\%)=\frac{Z_{\mathrm{metode}}-Z^*}{Z^*}\times100\%
+```
 
 dengan $Z^*$ adalah biaya optimum. Rata-rata hanya menggunakan hasil feasible.
 
