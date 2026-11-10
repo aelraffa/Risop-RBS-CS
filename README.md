@@ -166,7 +166,3 @@ RBS-CS menambahkan transfer melalui satu baris Satisfied untuk memperluas piliha
 
 Hasil mendukung manfaat transfer berantai pada dataset yang diuji. Metode ini masih bersifat heuristik dan tidak menjamin optimum untuk semua input. Evaluasi berfokus pada kelayakan dan biaya; sifat basis setiap hasil belum diuji.
 
-## 8. Acuan
-
-Rihan Farih Bunyamin, Bilqis Amaliah, dan Ahmad Saikhu. (2026). *Enhanced supply selection for better initial basic feasible solutions in transportation problems*. MethodsX, 16, 103825. [DOI: 10.1016/j.mex.2026.103825](https://doi.org/10.1016/j.mex.2026.103825).
-
