@@ -3,6 +3,7 @@
 | Nama | NRP |
 |--------------|-------------|
 | Elraffa Abhinaya | 5025231194 |
+| Muhammad Rizal Hafiyyan | 5025231212 |
 
 ## 1. TP, RBSM & RBS-CS
 
