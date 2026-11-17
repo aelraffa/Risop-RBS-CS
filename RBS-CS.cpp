@@ -380,9 +380,9 @@ int findChain(Move *best) {
         if (recCap[l] < amt)
           amt = recCap[l];
         if (printed < 30) {
-          out("  S%d->S%d di D%d (%+d), S%d->S%d di D%d (%+d): delta = "
-              "%+d, theta = %d\n",
-              i + 1, k + 1, j + 1, d1, k + 1, r + 1, l + 1, d2, delta, amt);
+          out("  S%d->S%d di D%d (%+d), S%d->S%d di D%d (%+d)\n", i + 1, k + 1,
+              j + 1, d1, k + 1, r + 1, l + 1, d2);
+          out("    delta = (%+d) + (%+d) = %+d\n", d1, d2, delta);
           printed++;
         }
         // delta terkecil; jika sama, theta terbesar
@@ -500,9 +500,23 @@ long solve(int useChain, int *iterations) {
           chosen.amount, i + 1, j + 1, k + 1, j + 1,
           chosen.amount * chosen.delta);
     } else {
-      // [MODIFIKASI CT-RBSM] cetak transfer berantai
-      out("  -> theta = %d unit: (S%d,D%d) -%d, (S%d,D%d) +%d, (S%d,D%d) -%d, "
-          "(S%d,D%d) +%d, biaya %+d\n",
+      // [MODIFIKASI CT-RBSM] hitung theta dan cetak transfer berantai
+      int x_ij = supply[chosen.i][chosen.j];
+      int x_kl = supply[chosen.k][chosen.l];
+      int exER = sumRow[chosen.i] - s[chosen.i];
+      int needNS = s[chosen.r] - sumRow[chosen.r];
+      out("  Hitung theta = min(X(S%d,D%d), X(S%d,D%d), Kelebihan ER, "
+          "Kekurangan NS):\n",
+          chosen.i + 1, chosen.j + 1, chosen.k + 1, chosen.l + 1);
+      out("    X(S%d,D%d)      = %d\n", chosen.i + 1, chosen.j + 1, x_ij);
+      out("    X(S%d,D%d)      = %d\n", chosen.k + 1, chosen.l + 1, x_kl);
+      out("    Kelebihan ER  = TA(S%d) - S(S%d) = %d - %d = %d\n", chosen.i + 1,
+          chosen.i + 1, sumRow[chosen.i], s[chosen.i], exER);
+      out("    Kekurangan NS = S(S%d) - TA(S%d) = %d - %d = %d\n", chosen.r + 1,
+          chosen.r + 1, s[chosen.r], sumRow[chosen.r], needNS);
+      out("    -> theta = %d unit\n", chosen.amount);
+      out("  -> pindahkan %d unit: (S%d,D%d) -%d, (S%d,D%d) +%d, (S%d,D%d) "
+          "-%d, (S%d,D%d) +%d, biaya %+d\n",
           chosen.amount, chosen.i + 1, chosen.j + 1, chosen.amount,
           chosen.k + 1, chosen.j + 1, chosen.amount, chosen.k + 1, chosen.l + 1,
           chosen.amount, chosen.r + 1, chosen.l + 1, chosen.amount,
