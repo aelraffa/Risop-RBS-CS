@@ -163,6 +163,20 @@ Tabel runtime mengikuti hasil eksekusi pada capture di atas. Pengukuran pada eks
 
 Runtime mencakup pembacaan input, inisialisasi, proses penyelesaian, dan penyalinan alokasi. Nilai per dataset adalah median lima pengukuran, kemudian dirata-ratakan pada hasil feasible. Angka ini dapat berubah antar eksekusi. Iterasi fractional VAM merupakan langkah alokasi, sedangkan metode lain menghitung langkah transfer, sehingga jumlahnya tidak langsung setara.
 
+### 6.4 Kompleksitas waktu dan ruang
+
+Dengan $m$ baris, $n$ kolom (setelah penyeimbangan), dan $K$ iterasi, berikut ringkasan kompleksitas kelima metode berdasarkan implementasi C++ masing-masing:
+
+| Metode | Pra-iterasi | Per Iterasi | Total Waktu | Ruang Total | Ruang Tambahan |
+|---|---|---|---|---|---|
+| **RBS-CS** | $\Theta(mn)$ | $O(mn(m + n))$ | $O(K \cdot mn(m + n))$ | $\Theta(mn)$ | $\Theta(m + n)$ |
+| **RBSM** | $\Theta(mn)$ | $O(m^2 n)$ | $O(mn + K \cdot m^2 n)$ | $\Theta(mn)$ | $\Theta(m + n)$ |
+| **CSM** | $\Theta(mn)$ | $O(m^2 n)$ | $O(mn + K \cdot m^2 n)$ | $\Theta(mn)$ | $\Theta(m + n)$ |
+| **SAM** | $\Theta(mn)$ | $O(mn)$ | $O(K \cdot mn)$ | $\Theta(mn)$ | $\Theta(m + n)$ |
+| **Fractional VAM** | $\Theta(mn)$ | $O(mn)$ | $\Theta(mn(m + n))$ | $\Theta(mn)$ | $\Theta(m + n)$ |
+
+Pada `RBS-CS`, pencarian transfer berantai (`findChain`) tidak memindai 5 indeks sekaligus ($O(m^3 n^2)$), melainkan mem-precompute donor ER terbaik tiap kolom dan mengevaluasi penerima NS terbaik secara *lazy* ($O(mn)$), sehingga tiap iterasi cukup $O(m^2 n + mn^2) = O(mn(m+n))$. 
+
 ## 7. Kesimpulan
 
 RBS-CS menambahkan transfer melalui satu baris Satisfied untuk memperluas pilihan perbaikan alokasi RBSM. Pada 69 dataset, metode ini menghasilkan seluruh solusi feasible, mencapai optimum pada **61 kasus**, dan memiliki rata-rata gap **0,5145%**. Biayanya lebih rendah daripada RBSM pada 23 kasus dan sama pada 46 kasus.

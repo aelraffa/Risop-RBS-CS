@@ -279,18 +279,7 @@ int findDirect(Move *best) {
   return 1;
 }
 
-/* ==================== [MODIFIKASI CT-RBSM] MULAI ====================
- * Langkah 6 (BARU): transfer berantai ER -> S -> NS (Teroptimasi O(mn + n^2))
- * Fungsi ini tidak ada di RBSM asli. RBSM asli hanya memindahkan langsung
- * ER -> NS (findDirect); di sini baris S boleh menjadi perantara.
- *
- * Optimasi Dekomposisi Independen:
- *   1. Precompute donor ER terbaik tiap kolom j (cost terbesar, seri -> cap
- * terbesar): O(mn)
- *   2. Precompute penerima NS terbaik tiap kolom l (cost terkecil, seri -> need
- * terbesar): O(mn)
- *   3. Pasangkan lewat baris perantara S (k) pada sel teralokasi: O(n(m + n))
- * ---------------------------------------------------------------------- */
+/* Langkah 6: cari kandidat transfer berantai ER -> S -> NS */
 int findChain(Move *best) {
   int idxJ, idxK, i, j, k, l, r, found = 0, printed = 0;
   int satRows[MAX], nSat = 0;
@@ -301,7 +290,6 @@ int findChain(Move *best) {
 
   out("Langkah 6 (baru): kandidat transfer berantai ER -> S -> NS\n");
 
-  // Kelompokkan baris berdasarkan status - O(m)
   for (i = 0; i < row; i++) {
     if (status[i] == SATISFIED)
       satRows[nSat++] = i;
@@ -318,10 +306,10 @@ int findChain(Move *best) {
     donRow[j] = -1;
     donCost[j] = -1;
     donCap[j] = 0;
-    recRow[j] = -2; // -2 = belum dihitung (lazy evaluation per kolom l)
+    recRow[j] = -2; // -2 = belum dicek
   }
 
-  // Tahap 1: Precompute donor ER terbaik hanya pada baris ER - O(|ER| * n)
+  // cari donor ER terbaik tiap kolom (cost terbesar)
   for (i = 0; i < row; i++) {
     if (status[i] != EXCESS_ROW)
       continue;
@@ -341,8 +329,7 @@ int findChain(Move *best) {
     }
   }
 
-  // Tahap 2: Evaluasi jalur ER -> S -> NS hanya pada kolom donor & baris S
-  // aktif
+  // cek jalur ER -> S -> NS lewat sel teralokasi di baris S
   for (idxJ = 0; idxJ < nDon; idxJ++) {
     j = donCols[idxJ];
     i = donRow[j];
@@ -351,9 +338,9 @@ int findChain(Move *best) {
       int d1 = matrix[k][j] - donCost[j];
       for (l = 0; l < col; l++) {
         if (l == j || !supply[k][l])
-          continue; // perantara melepas sel teralokasi di kolom lain
+          continue;
         if (recRow[l] == -2) {
-          // Hitung penerima NS terbaik di kolom l hanya jika kolom l terpakai
+          // cari penerima NS termurah di kolom l
           int bestR = -1, bestC = INT_MAX, bestNeed = 0, idxR;
           for (idxR = 0; idxR < nNS; idxR++) {
             int rr = nsRows[idxR];
@@ -385,7 +372,7 @@ int findChain(Move *best) {
           out("    delta = (%+d) + (%+d) = %+d\n", d1, d2, delta);
           printed++;
         }
-        // delta terkecil; jika sama, theta terbesar
+        // pilih delta terkecil; jika seri ambil theta terbesar
         if (!found || delta < best->delta ||
             (delta == best->delta && amt > best->amount)) {
           memset(best, 0, sizeof *best);
@@ -407,20 +394,19 @@ int findChain(Move *best) {
         "perantara)\n");
   return found;
 }
-/* ==================== [MODIFIKASI CT-RBSM] SELESAI ==================== */
 
-/* ---------- pindahkan unit ---------- */
+// pindahkan unit
 void applyMove(Move *m) {
   if (!m->chain) {
-    // transfer langsung FLC -> SLC di kolom yang sama (RBSM)
+    // transfer langsung (RBSM)
     supply[m->i][m->j] -= m->amount;
     supply[m->k][m->j] += m->amount;
   } else {
-    // transfer melalui 4 sel (RBS-CS)
-    supply[m->i][m->j] -= m->amount; // ER melepas di kolom j
-    supply[m->k][m->j] += m->amount; // perantara menerima di kolom j
-    supply[m->k][m->l] -= m->amount; // perantara melepas di kolom l
-    supply[m->r][m->l] += m->amount; // NS menerima di kolom l
+    // transfer berantai 4 sel (RBS-CS)
+    supply[m->i][m->j] -= m->amount;
+    supply[m->k][m->j] += m->amount;
+    supply[m->k][m->l] -= m->amount;
+    supply[m->r][m->l] += m->amount;
   }
 }
 
@@ -455,9 +441,7 @@ int feasible() {
   return 1;
 }
 
-/* ---------- jalankan satu metode; useChain = 0 RBSM asli, 1 CT-RBSM ----------
- * Alur loop = RBSM asli; yang berbeda hanya blok [MODIFIKASI CT-RBSM] di
- * dalamnya. */
+// jalankan metode (useChain = 0: RBSM, 1: RBS-CS)
 long solve(int useChain, int *iterations) {
   minimumCell();
   updateStatus();
@@ -470,11 +454,10 @@ long solve(int useChain, int *iterations) {
     out("=== Iterasi ke-%d ===\n", it);
     Move direct, chain, chosen;
     if (!findDirect(&direct))
-      break; // [RBSM ASLI] langkah 4-5
+      break;
     chosen = direct;
 
-    // ===== [MODIFIKASI CT-RBSM] MULAI: bandingkan delta berantai dengan SDiff
-    // =====
+    // bandingkan transfer berantai dengan SDiff
     if (useChain && findChain(&chain)) {
       out("  Delta berantai terkecil = %+d, SDiff = %+d -> ", chain.delta,
           direct.delta);
@@ -484,10 +467,9 @@ long solve(int useChain, int *iterations) {
       } else
         out("tetap pakai transfer langsung (aturan RBSM)\n");
     }
-    // ===== [MODIFIKASI CT-RBSM] SELESAI =====
 
     if (!chosen.chain) {
-      // [RBSM ASLI] aturan satisfy (langkah 6 RBSM / langkah 7 CT-RBSM)
+      // aturan satisfy RBSM
       int i = chosen.i, j = chosen.j, k = chosen.k;
       out("Langkah %d: supply FLC = %d, supply SLC = %d; C x S FLC = %d x %d = "
           "%ld, C x S SLC = %d x %d = %ld\n",
@@ -500,7 +482,7 @@ long solve(int useChain, int *iterations) {
           chosen.amount, i + 1, j + 1, k + 1, j + 1,
           chosen.amount * chosen.delta);
     } else {
-      // [MODIFIKASI CT-RBSM] hitung theta dan cetak transfer berantai
+      // hitung theta dan cetak transfer berantai
       int x_ij = supply[chosen.i][chosen.j];
       int x_kl = supply[chosen.k][chosen.l];
       int exER = sumRow[chosen.i] - s[chosen.i];
@@ -534,15 +516,13 @@ long solve(int useChain, int *iterations) {
   return countTCC();
 }
 
-/* ---------- [TAMBAHAN PROGRAM] ukur runtime rata-rata (tanpa output)
- * ---------- */
+// ukur rata-rata runtime dalam mikrodetik (tanpa output)
 long lastReps = 0;
 double runtimeMicro(int useChain) {
   int it;
   int saved = verbose;
   verbose = 0;
-  // ulangi sampai total waktu >= 0.2 detik supaya resolusi timer tidak
-  // berpengaruh
+  // ulangi minimal 0.2 detik agar hasil stabil
   long reps = 1000;
   double total;
   while (1) {
@@ -560,7 +540,7 @@ double runtimeMicro(int useChain) {
   return total / reps;
 }
 
-/* Jalankan RBS-CS dan tampilkan proses serta ringkasan hasilnya. */
+// jalankan RBS-CS dan tampilkan ringkasan hasilnya
 void compute() {
   if (!readInput())
     return;
